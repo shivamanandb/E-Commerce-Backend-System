@@ -1,0 +1,25 @@
+from pydantic import BaseModel, EmailStr, field_validator, Field
+from ..exceptions import InvalidNameException
+
+class CreateUser(BaseModel):
+    name: str = Field(..., min_length=2, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+    role: str
+    
+    @field_validator('name')
+    @classmethod
+    def check_for_valid_name(cls, value):
+        if not value.replace(" ", "").isalpha():
+            raise InvalidNameException("Name is not valid")
+        return value
+    
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    role: str
+    created_at: str
+    
+    class Config:
+        from_attribute = True

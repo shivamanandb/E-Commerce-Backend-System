@@ -5,7 +5,7 @@ from sqlalchemy import select, update
 from datetime import datetime, timedelta
 from ..middlewares import oauth2
 from . import schemas, models
-from ..password_reset_token.models import ResetPasswordToken
+from ..auth.models import ResetPasswordToken
 from ..configuration.config import settings 
 import logging
 from ..configuration import logger_config
@@ -18,8 +18,8 @@ from . import models
 from ..utils import password_encoder 
 from ..utils.reset_password_token import reset_password_token
 from ..utils.password_reset_email import send_password_reset_email
-from ..password_reset_token.schemas import ResetPasswordRequest
-from ..password_reset_token.models import ResetPasswordToken
+from ..auth.schemas import ResetPasswordRequest
+from ..auth.models import ResetPasswordToken
 
 router = APIRouter()
 
@@ -121,6 +121,7 @@ async def forgot_password(
     
     # send email
     background_tasks.add_task(send_password_reset_email,user.email,user.name,reset_token)
+    return {"message": f"token has sent to your email: {request.email} "}
     
     
 @router.post("/reset-password")

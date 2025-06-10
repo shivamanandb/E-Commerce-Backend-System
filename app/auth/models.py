@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Enum
+from sqlalchemy import Column, String, Integer, Enum, ForeignKey, Boolean
 from sqlalchemy.sql.expression import text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import TIMESTAMP
@@ -23,3 +23,16 @@ class User(Base):
     cart_items = relationship("Cart", back_populates="user", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="user")
     password_reset_tokens = relationship("ResetPasswordToken", back_populates="user")
+    
+    
+# Reset Password Token 
+class ResetPasswordToken(Base):
+    __tablename__ = "reset_password_token"
+    
+    id = Column(Integer, primary_key=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token = Column(String, nullable=False, unique=True)
+    expiration_time = Column(TIMESTAMP(timezone=True), nullable=False)
+    used = Column(Boolean, default=False, nullable=False)
+    
+    user = relationship("User", back_populates="password_reset_tokens")

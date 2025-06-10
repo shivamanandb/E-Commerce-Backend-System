@@ -1,20 +1,19 @@
 from fastapi import FastAPI, Depends
 from .auth import models as auth_model
 from .cart import models as cart_model
-from .orderItems import models as orderItems_model
+from .orders import models as orderItems_model
 from .orders import models as orders_model
 from .products import models as products_model
-from .password_reset_token import models as reset_token_model
+from .auth import models as reset_token_model
 from .middlewares import routes as oauth2
 from .auth import routes as auth 
 from .cart import routes as cart 
 from contextlib import asynccontextmanager
-from .orderItems import routes as orderItems
+from .orders import routes as orderItems
 from .configuration import cloudinary 
 from .orders import routes as orders
 from .products.admin import routes as products_admin_routes
 from .products.user import routes as products_user_routes
-from .password_reset_token import routes as reset_token
 from .global_exception_handler import add_exception_handlers 
 from .configuration.database import engine
 from .dependency import require_admin, require_user
@@ -51,8 +50,6 @@ app.include_router(products_admin_routes.router, prefix="/admin/products", tags=
 app.include_router(products_user_routes.router, prefix="/products", tags=["Products"], dependencies=[Depends(require_user)])
 app.include_router(cart.router, prefix="/cart", tags=["Cart"], dependencies=[Depends(require_user)])
 app.include_router(orders.router, prefix="/orders", tags=["Orders"], dependencies=[Depends(require_user)])
-app.include_router(orderItems.router, prefix="/orders", tags=["Order Items"], dependencies=[Depends(require_user)])
-app.include_router(reset_token.router, prefix="/reset", tags=["Reset Password Token"])
 app.include_router(cloudinary.router, prefix="/upload", tags=["Reset Password Token"])
 app.include_router(oauth2.router, tags=["Refresh Token"])
 

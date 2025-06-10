@@ -9,7 +9,7 @@ from ..auth import models as userModel
 from ..products import models as productModel
 from ..exceptions import UserNotFoundException, ProductNotFoundException, InvalidStockException
 from ..orders import models as ordersModel
-from ..orderItems import models as orderItemsModel
+from ..orders.models import OrderStatus
 from . import schemas
 
 router = APIRouter()
@@ -196,7 +196,7 @@ async def checkout(
             user_id = current_user.id,
             total_amount = total_amt,
             address = checkOutAddress.address,
-            status = "paid"
+            status = OrderStatus.paid
         )
         
         db.add(order)
@@ -205,7 +205,7 @@ async def checkout(
         
         # put details of individual product and order details into orderItems table
         for item in cart:
-            orderItems = orderItemsModel.OrderItems(
+            orderItems = ordersModel.OrderItems(
                 order_id = order.id,
                 product_id = item.product_id,
                 quantity = item.quantity,

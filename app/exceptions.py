@@ -49,3 +49,11 @@ class AuthException(HTTPException):
 class InvalidStockException(HTTPException):
     def __init__(self, message: str = "Permission Denied"):
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)
+        
+class OrderNotFoundException(HTTPException):
+    def __init__(self, message: str = "Order not found"):
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=message)
+        
+class GeneralException(HTTPException):
+    def __init__(self,status_code: status, message: str):
+        super().__init__(status_code=status_code, detail=message)

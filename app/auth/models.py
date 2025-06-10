@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Integer, Enum
 from sqlalchemy.sql.expression import text
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from ..configuration.database import Base
 import enum  # <-- For Python Enum
@@ -19,4 +20,6 @@ class User(Base):
     role = Column(Enum(UserRole), nullable=False, server_default="user")  # Default role = 'user'
     created_at = Column(TIMESTAMP(timezone=True),nullable=False,server_default=text('now()'))
     
-    
+    cart_items = relationship("Cart", back_populates="user", cascade="all, delete-orphan")
+    orders = relationship("Order", back_populates="user")
+    password_reset_tokens = relationship("ResetPasswordToken", back_populates="user")

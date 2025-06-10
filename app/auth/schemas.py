@@ -15,6 +15,13 @@ class CreateUser(BaseModel):
             raise InvalidNameException("Name is not valid")
         return value
     
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, value):
+        if len(value) < 6:
+            raise ValueError('Password must be at least 6 characters long')
+        return value
+    
 class UserResponse(BaseModel):
     id: int
     name: str
@@ -25,3 +32,5 @@ class UserResponse(BaseModel):
     class Config:
         from_attribute = True
         
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr

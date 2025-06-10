@@ -1,19 +1,25 @@
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, BackgroundTasks
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from .. import exceptions
+from sqlalchemy import select, update
+from datetime import datetime, timedelta
 from ..middlewares import oauth2
 from . import schemas, models
+from ..password_reset_token.models import ResetPasswordToken
+from ..configuration.config import settings 
 import logging
 from ..configuration import logger_config
-from ..exceptions import EmailAlreadyExistsException, UserNotFoundException, InvalidPasswordException
+from ..exceptions import EmailAlreadyExistsException, UserNotFoundException, InvalidPasswordException, InvalidTokenException
 from sqlalchemy.exc import IntegrityError
 from ..configuration.database import get_db
+from .schemas import ForgotPasswordRequest
 from ..utils import password_encoder
 from . import models
 from ..utils import password_encoder 
-
+from ..utils.reset_password_token import reset_password_token
+from ..utils.password_reset_email import send_password_reset_email
+from ..password_reset_token.schemas import ResetPasswordRequest
+from ..password_reset_token.models import ResetPasswordToken
 
 router = APIRouter()
 
@@ -80,3 +86,75 @@ async def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Asy
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
+
+@router.post("/forgot-password")
+async def forgot_password(
+    request: ForgotPasswordRequest, 
+    background_tasks: BackgroundTasks, 
+    db: AsyncSession = Depends(get_db)
+    ):
+    
+    """Request for Password Reset"""
+    
+    result = await db.execute(select(models.User).where(models.User.email == request.email))
+    
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise UserNotFoundException("User doesn't exist")
+    
+    PASSWORD_RESET_TOKEN_EXPIRE_TIME = settings.access_token_expire_minutes
+    
+    # Generate reset token
+    reset_token = reset_password_token(request.email)
+    expiration_time = datetime.now() + timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRE_TIME)
+    
+    # save token
+    token_obj = ResetPasswordToken(
+        user_id = user.id,
+        token = reset_token,
+        expiration_time = expiration_time
+    )
+    
+    db.add(token_obj)
+    await db.commit()
+    
+    # send email
+    background_tasks.add_task(send_password_reset_email,user.email,user.name,reset_token)
+    
+    
+@router.post("/reset-password")
+async def reset_password(
+    request: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Reset password using token"""
+    result = await db.execute(
+        select(ResetPasswordToken)
+        .where(ResetPasswordToken.token == request.token)
+        .where(ResetPasswordToken.used == False)
+        .where(ResetPasswordToken.expiration_time > datetime.utcnow())
+    )
+    token_obj = result.scalar_one_or_none()
+    
+    if not token_obj:
+        raise InvalidTokenException("Invalid or expired token")
+    
+    # Update password
+    hashed_password = password_encoder.hash(request.new_password)
+    await db.execute(
+        update(models.User)
+        .where(models.User.id == token_obj.user_id)
+        .values(password=hashed_password)
+    )
+    
+    # Mark token as used
+    await db.execute(
+        update(ResetPasswordToken)
+        .where(ResetPasswordToken.id == token_obj.id)
+        .values(used=True)
+    )
+    
+    await db.commit()
+    
+    return {"message": "Password reset successfully"}

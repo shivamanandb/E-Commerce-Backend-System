@@ -14,5 +14,6 @@ class Cart(Base):
     quantity = Column(Integer, default=0, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
     
+    user = relationship("User", back_populates="cart_items")
     product = relationship("Product", back_populates="cart_items")
     

@@ -20,7 +20,8 @@ class Product(Base):
     order_items = relationship("OrderItems", back_populates="product")
     
     __table_args__ = (
-        CheckConstraint('price >= 0', name='check_price_positive'),
+        CheckConstraint('price >= 1', name='check_price_greater_than_1'),
+        CheckConstraint('stock >= 0', name='check_stock_positive')
     )
 # If product has not ordered even a single time then I can delete it easily,
 # but if someone has ordered then it can't be deleted. In this case, we will 

@@ -45,3 +45,7 @@ class InvalidCredentialsException(HTTPException):
 class AuthException(HTTPException):
     def __init__(self, message: str = "Permission Denied"):
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)
+
+class InvalidStockException(HTTPException):
+    def __init__(self, message: str = "Permission Denied"):
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=message)

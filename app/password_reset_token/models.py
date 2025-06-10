@@ -14,5 +14,5 @@ class ResetPasswordToken(Base):
     expiration_time = Column(TIMESTAMP(timezone=True), nullable=False)
     used = Column(Boolean, default=False, nullable=False)
     
-    user = relationship("User")
+    user = relationship("User", back_populates="password_reset_tokens")
     

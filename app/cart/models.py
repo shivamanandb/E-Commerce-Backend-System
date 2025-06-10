@@ -3,6 +3,7 @@ from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
 from sqlalchemy.orm import relationship
 from ..configuration.database import Base
+from ..products.models import Product 
 
 class Cart(Base):
     __tablename__ = "cart_items"

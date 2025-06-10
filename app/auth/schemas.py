@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator, Field
 from ..exceptions import InvalidNameException
+from datetime import datetime
 
 class CreateUser(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
@@ -19,7 +20,8 @@ class UserResponse(BaseModel):
     name: str
     email: EmailStr
     role: str
-    created_at: str
+    created_at: datetime
     
     class Config:
         from_attribute = True
+        

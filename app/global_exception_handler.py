@@ -1,4 +1,4 @@
-from fastapi import Request
+from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -8,8 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 def add_exception_handlers(app):  
-    @app.exception_handler(StarletteHTTPException)
-    async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
         logging.warning(f"HTTP Exception: {exc.detail}")
         return JSONResponse(
             status_code=exc.status_code,
@@ -22,12 +22,13 @@ def add_exception_handlers(app):
         
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
-        logger.error(f"Validation Error: {exc.errors()}")
+        msg = [error['msg'] for error in exc.errors()]
+        logger.error(f"Validation Error: {msg[0]}")
         return JSONResponse(
             status_code=422,
             content={
                 "error": True,
-                "message": exc.errors(),
+                "message":msg[0],
                 "code": 422
             }
         )

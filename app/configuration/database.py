@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from .config import settings
@@ -7,26 +7,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-DATABASE_URL = f'postgresql://{settings.database_username}:{settings.database_password}@{settings.database_hostname}:{settings.database_port}/{settings.database_name}'
+DATABASE_URL = f'postgresql+asyncpg://{settings.database_username}:{settings.database_password}@{settings.database_hostname}:{settings.database_port}/{settings.database_name}'
 
 # Establish connection
 try:
-    engine = create_engine(DATABASE_URL)
+    engine = create_async_engine(DATABASE_URL)
     logger.info("Database engine created successfully.")
 except Exception as e:
     logger.exception("Failed to create database engine")
     raise e
 
 # Create factory for database sessions
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 Base = declarative_base()
 
-def get_db():
-    logger.debug("Creating new database session.")
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        logger.debug("Closing database session.")
-        db.close()
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session

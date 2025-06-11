@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     database_password: str
     database_username: str
     secret_key: str
-    algorithm: str
+    algorithm: str 
     access_token_expire_minutes: int
     refresh_token_expire_days: int
     forget_password_secret_key: str
@@ -26,3 +26,5 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 settings = Settings()
+
+print("all: ", settings.model_dump())

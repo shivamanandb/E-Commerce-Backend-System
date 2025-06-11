@@ -1,6 +1,6 @@
 from .send_email import send_email
 
-def send_password_reset_email(email: str, name: str, token: str) -> bool:
+def send_password_reset_email(email: str, name: str, token: str):
     """Send password reset email"""
     subject = "Password Reset Request"
     
@@ -11,8 +11,7 @@ def send_password_reset_email(email: str, name: str, token: str) -> bool:
         <p>Hello {{ name }},</p>
         <p>You requested to reset your password. Use the token below:</p>
         <p><strong>Reset Token: {{ token }}</strong></p>
-        <p>This token will expire in 1 hour.</p>
-        <p>If you didn't request this, please ignore this email.</p>
+        <p>This token will expire in 5 min.</p>
     </body>
     </html>
     """

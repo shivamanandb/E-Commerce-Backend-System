@@ -28,4 +28,4 @@ async def refresh_token(refresh_token: str = Form(...), db: AsyncSession = Depen
             "token_type": "bearer"
         }
     except JWTError:
-        raise InvalidTokenException(status_code=403, detail="Invalid refresh token")
+        raise InvalidTokenException("Invalid refresh token")

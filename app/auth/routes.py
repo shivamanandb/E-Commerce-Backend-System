@@ -2,7 +2,7 @@ from fastapi import APIRouter, status, Depends, BackgroundTasks
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from ..middlewares import oauth2
 from . import schemas, models
 from ..auth.models import ResetPasswordToken
@@ -16,7 +16,7 @@ from .schemas import ForgotPasswordRequest
 from ..utils import password_encoder
 from . import models
 from ..utils import password_encoder 
-from ..utils.reset_password_token import reset_password_token
+from ..utils.reset_password_token import generate_reset_token
 from ..utils.password_reset_email import send_password_reset_email
 from ..auth.schemas import ResetPasswordRequest
 from ..auth.models import ResetPasswordToken
@@ -103,11 +103,11 @@ async def forgot_password(
     if not user:
         raise UserNotFoundException("User doesn't exist")
     
-    PASSWORD_RESET_TOKEN_EXPIRE_TIME = settings.access_token_expire_minutes
+    PASSWORD_RESET_TOKEN_EXPIRE_TIME = settings.password_reset_token_expire_minutes
     
     # Generate reset token
-    reset_token = reset_password_token(request.email)
-    expiration_time = datetime.now() + timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRE_TIME)
+    reset_token = generate_reset_token()
+    expiration_time = datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRE_TIME)
     
     # save token
     token_obj = ResetPasswordToken(
@@ -134,7 +134,7 @@ async def reset_password(
         select(ResetPasswordToken)
         .where(ResetPasswordToken.token == request.token)
         .where(ResetPasswordToken.used == False)
-        .where(ResetPasswordToken.expiration_time > datetime.utcnow())
+        .where(ResetPasswordToken.expiration_time > datetime.now(timezone.utc))
     )
     token_obj = result.scalar_one_or_none()
     

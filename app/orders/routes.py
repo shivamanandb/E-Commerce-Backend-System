@@ -1,22 +1,31 @@
 from fastapi import APIRouter, Depends, status
-from ..configuration.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy.ext.asyncio import AsyncSession
+from ..configuration.database import get_db
 from ..auth import models as userModel
-from ..middlewares import oauth2 
-from ..orders.models import Order
+from ..middlewares import oauth2
+from ..orders.models import Order, OrderItems
 from ..products.models import Product
-from ..orders.models import OrderItems
 from ..exceptions import GeneralException, OrderNotFoundException
 
 router = APIRouter()
 
-@router.get("/")
+# --------------------------------------------------------
+# Endpoint: View Order History (GET /orders/)
+# --------------------------------------------------------
+
+@router.get("/", status_code=status.HTTP_200_OK)
 async def view_order_history(
     db: AsyncSession = Depends(get_db),
     current_user: userModel.User = Depends(oauth2.get_current_user)
 ):
+    """
+    Retrieve a list of all past orders placed by the currently authenticated user.
+
+    Returns:
+        List of orders with basic information (id, status, total amount, created date).
+    """
     try:
         result = await db.execute(
             select(Order)
@@ -30,29 +39,46 @@ async def view_order_history(
                 "order_id": order.id,
                 "date": order.created_at,
                 "total": float(order.total_amount),
-                "status": order.status.value
+                "status": order.status.value,
             }
             for order in orders
         ]
 
         return {"orders": order_history}
-    
+
     except Exception as e:
-        raise GeneralException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to fetch order history: {str(e)}")
+        raise GeneralException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch order history: {str(e)}"
+        )
 
 
-@router.get("/{order_id}")
+# --------------------------------------------------------
+# Endpoint: View Order Details (GET /orders/{order_id})
+# --------------------------------------------------------
+
+@router.get("/{order_id}", status_code=status.HTTP_200_OK)
 async def view_order_details(
     order_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: userModel.User = Depends(oauth2.get_current_user)
 ):
+    """
+    Retrieve full details of a specific order for the logged-in user.
+
+    Args:
+        order_id (int): Unique ID of the order to fetch.
+
+    Returns:
+        Order metadata and all order items (product info, quantity, prices, etc).
+    """
     try:
         result = await db.execute(
             select(Order)
             .where(Order.id == order_id, Order.user_id == current_user.id)
             .options(selectinload(Order.order_items).selectinload(OrderItems.product))
         )
+
         order = result.scalar_one_or_none()
 
         if not order:
@@ -62,13 +88,12 @@ async def view_order_details(
         for item in order.order_items:
             product = item.product
             if product:
-                subtotal = float(item.price_at_purchase) * item.quantity
                 item_details.append({
                     "product_name": product.name,
                     "image_url": product.image_url,
                     "quantity": item.quantity,
                     "price_at_purchase": float(item.price_at_purchase),
-                    "subtotal": subtotal
+                    "subtotal": float(item.price_at_purchase) * item.quantity
                 })
 
         return {
@@ -79,5 +104,11 @@ async def view_order_details(
             "items": item_details
         }
 
+    except OrderNotFoundException as not_found:
+        raise not_found
+
     except Exception as e:
-        raise GeneralException(status_code=500, detail=f"Failed to fetch order details: {str(e)}")
+        raise GeneralException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch order details: {str(e)}"
+        )

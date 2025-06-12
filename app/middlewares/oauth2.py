@@ -4,70 +4,117 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt, JWTError
+
 from ..configuration.config import settings
 from ..configuration.database import get_db
 from ..exceptions import InvalidCredentialsException, UserNotFoundException
 from ..auth import models
 from . import schema
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login') # is creating a dependency for extracting a bearer token from the Authorization header in FastAPI — specifically for OAuth2 password flow.
+# FastAPI dependency to extract token from Authorization header
+# It expects "Authorization: Bearer <token>" format
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/signin')
 
+# Security Configurations
 SECRET_KEY = settings.secret_key
 ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
 
-def create_access_token(data: dict):
+
+# -------------------------
+# Generate JWT Access Token
+# -------------------------
+def create_access_token(data: dict) -> str:
+    """
+    Creates a short-lived JWT access token used for authenticating requests.
+
+    Args:
+        data (dict): Payload to encode in the token (e.g., user_id, role).
+
+    Returns:
+        str: Encoded JWT access token.
+    """
     to_encode = data.copy()
-    print("sds", ACCESS_TOKEN_EXPIRE_MINUTES)
-    expire = datetime.now(timezone.utc)+ timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
+
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def create_refresh_token(data: dict):
+
+# --------------------------
+# Generate JWT Refresh Token
+# --------------------------
+def create_refresh_token(data: dict) -> str:
+    """
+    Creates a long-lived JWT refresh token used to issue new access tokens.
+
+    Args:
+        data (dict): Payload to encode in the token (e.g., user_id, role).
+
+    Returns:
+        str: Encoded JWT refresh token.
+    """
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
+
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def verify_access_token(token: str, credentials_exception):
+# ----------------------
+# Verify JWT Access Token
+# ----------------------
+def verify_access_token(token: str, credentials_exception) -> schema.TokenData:
+    """
+    Verifies a JWT token's validity and decodes it to extract user details.
+
+    Args:
+        token (str): JWT token from client.
+        credentials_exception: Exception to raise on failure.
+
+    Returns:
+        schema.TokenData: Decoded payload with user_id and role.
+    """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
-
-        print("payload: ", payload)
-
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("user_id")
-        role: str = payload.get("role")  
-
-        print("user_id:", user_id, "role:", role)
+        role: str = payload.get("role")
 
         if user_id is None or role is None:
             raise credentials_exception
 
-        token_data = schema.TokenData(id=int(user_id), role=role) 
-
+        return schema.TokenData(id=int(user_id), role=role)
+    
     except JWTError:
         raise credentials_exception
 
-    return token_data
 
-    
-async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
-    
+# ---------------------
+# Get Authenticated User
+# ---------------------
+async def get_current_user(
+    token: str = Depends(oauth2_scheme), 
+    db: AsyncSession = Depends(get_db)
+) -> models.User:
     """
-    Purpose: Get the logged-in user object from the database using the token.
-    token: Automatically extracted from Authorization: Bearer <token> header by oauth2_scheme.
-    db: Injects the DB session using FastAPI’s dependency injection.
+    Fetches the current logged-in user from the database using the JWT token.
+
+    Args:
+        token (str): Auto-injected from Authorization header.
+        db (AsyncSession): DB session dependency.
+
+    Returns:
+        models.User: Authenticated user object from the DB.
     """
-    credentials_exception = InvalidCredentialsException("could not validate credentails")
+    credentials_exception = InvalidCredentialsException("Could not validate credentials")
     
-    token =  verify_access_token(token, credentials_exception)
-    print("token: ", token)
-    
-    user = await db.execute(select(models.User).where(models.User.id == token.id))
-    user = user.scalar_one_or_none()
+    token_data = verify_access_token(token, credentials_exception)
+
+    result = await db.execute(select(models.User).where(models.User.id == token_data.id))
+    user = result.scalar_one_or_none()
+
     if user is None:
-        raise UserNotFoundException(f"User not found for this id: {token.id}")
-    
+        raise UserNotFoundException(f"User not found for this id: {token_data.id}")
+
     return user

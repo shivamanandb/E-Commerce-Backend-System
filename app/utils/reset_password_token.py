@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
 import uuid
 
-def generate_reset_token():
+
+def generate_reset_token() -> str:
     """
-    Generate a unique reset password token.
+    Generates a cryptographically secure, unique token for password reset.
+
+    Returns:
+        str: A UUID-based reset token as a string.
     """
-    token = str(uuid.uuid4())
-    
-    return token
+    return str(uuid.uuid4())

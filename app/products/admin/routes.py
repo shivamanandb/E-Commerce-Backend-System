@@ -1,6 +1,6 @@
-from fastapi import APIRouter, File, UploadFile, Form, status, Depends
+from fastapi import APIRouter, File, UploadFile, Form, status, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, asc, desc, delete
+from sqlalchemy import select, and_, asc, delete, desc, update
 from typing import List, Optional
 from .. import models
 from ...configuration.database import get_db
@@ -8,25 +8,35 @@ from ...utils.image_uploader import upload_image_to_cloudinary
 from ...configuration.config import settings
 from . import schemas
 from ...exceptions import ProductNotFoundException
+from ...orders.models import OrderItems
 import tempfile
 import logging
+import os
 
+# Initialize logger
 logger = logging.getLogger(__name__)
 
+# Create API router for product-related operations
 router = APIRouter()
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Product)
+# -----------------------------
+# CREATE PRODUCT (Admin API)
+# -----------------------------
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.ProductOutput, tags=["Product - Admin APIs"])
 async def create_product(
     name: str = Form(...),
     description: str = Form(...),
     price: float = Form(...),
     stock: int = Form(...),
     category: str = Form(...),
-    file: UploadFile = File(...),  # image file
+    file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db)
 ):
-    try:        
-        # Save file temporarily
+    """
+    Create a new product with image. Uploads image to Cloudinary and saves product details in database.
+    """
+    try:
+        # Save the uploaded file temporarily
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             contents = await file.read()
             tmp.write(contents)
@@ -36,7 +46,13 @@ async def create_product(
         upload_result = await upload_image_to_cloudinary(tmp_path, folder=settings.folder_name)
         image_url = upload_result.get("secure_url")
 
-        # Create product model
+        # Cleanup temporary file
+        try:
+            os.remove(tmp_path)
+        except Exception as e:
+            logger.warning(f"Temporary file cleanup failed: {e}")
+
+        # Create and save new product
         new_product = models.Product(
             name=name,
             description=description,
@@ -49,20 +65,33 @@ async def create_product(
         db.add(new_product)
         await db.commit()
         await db.refresh(new_product)
-    except Exception as e:
-        logger.info(f"Unexpected Error during product creation {str(e)}")
-        raise 
-        
-    return new_product
 
-@router.get("/", response_model=List[schemas.Product])
-async def get_product(db: AsyncSession = Depends(get_db), 
-                    limit: int = 10, skip: int = 0, min_price: int = 0,
-                    max_price : int = None, sort_by : Optional[str] = "id", category : Optional[str] = None):
-    
+        return new_product
+
+    except Exception as e:
+        logger.error(f"Product creation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error during product creation")
+
+
+# -----------------------------
+# GET PRODUCTS (Admin API)
+# -----------------------------
+@router.get("/", response_model=List[schemas.ProductOutput], tags=["Product - Admin APIs"])
+async def get_products(
+    db: AsyncSession = Depends(get_db), 
+    limit: int = 10, 
+    skip: int = 0, 
+    min_price: int = 0,
+    max_price: Optional[int] = None, 
+    sort_by: Optional[str] = "id", 
+    category: Optional[str] = None
+):
+    """
+    Retrieve paginated and filtered list of products. Supports filtering by price, category, and sorting.
+    """
     statement = select(models.Product)
     
-    filters = [models.Product.price >= min_price]
+    filters = [models.Product.price >= min_price, models.Product.is_active == True]
     
     if max_price is not None:
         filters.append(models.Product.price <= max_price)
@@ -74,9 +103,9 @@ async def get_product(db: AsyncSession = Depends(get_db),
         statement = statement.where(and_(*filters))
         
     if sort_by in ["id", "price", "stock", "created_at"]:
-        statement = statement.order_by(asc(getattr(models.Product, sort_by)))
+        statement = statement.order_by(desc(getattr(models.Product, sort_by)))
     else:
-        statement = statement.order_by(models.Product.id) # by default
+        statement = statement.order_by(models.Product.id)
         
     statement = statement.limit(limit).offset(skip)
     
@@ -84,56 +113,95 @@ async def get_product(db: AsyncSession = Depends(get_db),
     
     return result.scalars().all()
 
-@router.get("/search", response_model=List[schemas.Product])
-async def product_search(db: AsyncSession = Depends(get_db), keyword : Optional[str] = None):
-    
-    statement = select(models.Product)
-    
-    if keyword is not None:
-        statement = statement.where(models.Product.name.contains(keyword))
-    
-    products = await db.execute(statement)
-    
-    return products.scalars().all()
 
-@router.get("/{id}", response_model=schemas.ProductDetails)
+# -----------------------------
+# SEARCH PRODUCTS (Admin API)
+# -----------------------------
+@router.get("/search", response_model=List[schemas.ProductOutput], tags=["Product - Admin APIs"])
+async def product_search(
+    db: AsyncSession = Depends(get_db), 
+    product_name: Optional[str] = None
+):
+    """
+    Search products by keyword match on product name.
+    """
+    statement = select(models.Product).where(models.Product.is_active == True)
+
+    if product_name:
+        statement = statement.where(models.Product.name.ilike(f"%{product_name}%"))
+
+    result = await db.execute(statement)
+    return result.scalars().all()
+
+
+# -----------------------------
+# GET PRODUCT BY ID (Admin API)
+# -----------------------------
+@router.get("/{id}", response_model=schemas.ProductDetailsOutput, tags=["Product - Admin APIs"])
 async def product_by_id(id: int, db: AsyncSession = Depends(get_db)):
-    
-    try:
-        statement = select(models.Product).where(models.Product.id == id)
-    
-        result = await db.execute(statement)
-        
-        product = result.scalar_one_or_none()
-        
-        if product is None:
-            raise ProductNotFoundException(f"Product is not listed here with product_id: {id}")
-    except Exception as e:
-        raise
+    """
+    Retrieve a single product by ID including all metadata.
+    """
+    statement = select(models.Product).where(models.Product.id == id, models.Product.is_active == True)
+    result = await db.execute(statement)
+    product = result.scalar_one_or_none()
+
+    if not product:
+        raise ProductNotFoundException(f"Product not found with ID: {id}")
 
     return product
-    
-@router.delete("/{id}")
+
+
+# -----------------------------
+# DELETE PRODUCT BY ID (Admin API)
+# -----------------------------
+
+
+@router.delete("/{id}", tags=["Product - Admin APIs"])
 async def delete_product_by_id(id: int, db: AsyncSession = Depends(get_db)):
-    try:
+    """
+    Delete a product from the database using its ID.
+    Basic Idea is that if product is ordered at least one time and if is it deleted from DB
+    then the people will face issue to see their ordered product in their order history.
+    Now, I come up with the idea that I created an attribute, named, is_active. if a product 
+    is ordered at least one time and in future I admin want to delete such product then its
+    deletion will be soft deleted, means only is_active value will false.Product will persist 
+    in DB but no one will allow to access. and if product didn't order even a single time, it 
+    can be deleted easily.
+    """
+    statement = select(models.Product).where(models.Product.id == id)
+    result = await db.execute(statement)
+    product = result.scalar_one_or_none()
+
+    if not product:
+        raise ProductNotFoundException(f"Product not found with ID: {id}")
+    
+    # check whether product has been ordered earlier or not
+    is_order = await db.execute(select(OrderItems).where(OrderItems.product_id == id))
+    
+    is_order = is_order.scalar_one_or_none()
+    
+    if not is_order:
+        delete_stmt = delete(models.Product).where(models.Product.id == id)
+        await db.execute(delete_stmt)
+    
+    else:
+        await db.execute(
+            update(models.Product)
+            .where(models.Product.id == id)
+            .values(is_active=False)
+        )
         
-        statement = select(models.Product).where(models.Product.id == id)
-        result = await db.execute(statement)
-        product = result.scalar_one_or_none()
-        if product is None:
-            raise ProductNotFoundException(f"Product is not listed here with product_id: {id}")
         
-        statement = delete(models.Product).where(models.Product.id == id)
-        await db.execute(statement) 
-        await db.commit()
-            
-    except Exception as e:
-        raise
+    await db.commit()
 
-    return {"message": "Product Deleted Successfully"}
+    return {"message": "Product deleted successfully"}
 
 
-@router.put("/{id}")
+# -----------------------------
+# UPDATE PRODUCT BY ID (Admin API)
+# -----------------------------
+@router.put("/{id}", response_model=schemas.ProductDetailsOutput, status_code=status.HTTP_200_OK, tags=["Product - Admin APIs"])
 async def update_product(
     id: int,
     name: str = Form(...),
@@ -141,18 +209,18 @@ async def update_product(
     price: float = Form(...),
     stock: int = Form(...),
     category: str = Form(...),
-    file: Optional[UploadFile] = File(None),  # Optional image
+    file: Optional[UploadFile] = File(None),
     db: AsyncSession = Depends(get_db)
 ):
-    
-    stmt = select(models.Product).where(models.Product.id == id)
+    """
+    Update a product's information. Optionally upload a new image.
+    """
+    stmt = select(models.Product).where(models.Product.id == id, models.Product.is_active == True)
     result = await db.execute(stmt)
     product = result.scalar_one_or_none()
 
-    if product is None:
-        raise ProductNotFoundException(f"Product is not listed here with product_id: {id}")
-
-    image_url = product.image_url  # default to old image
+    if not product:
+        raise ProductNotFoundException(f"Product not found with ID: {id}")
 
     if file:
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
@@ -161,29 +229,20 @@ async def update_product(
             tmp_path = tmp.name
 
         upload_result = await upload_image_to_cloudinary(tmp_path, folder=settings.folder_name)
-        image_url = upload_result.get("secure_url")
+        product.image_url = upload_result.get("secure_url")
+
+        try:
+            os.remove(tmp_path)
+        except Exception as e:
+            logger.warning(f"Temp file deletion failed: {e}")
 
     product.name = name
     product.description = description
     product.price = price
     product.stock = stock
     product.category = category
-    product.image_url = image_url
 
     await db.commit()
     await db.refresh(product)
 
-    return {
-        "message": "Product updated successfully",
-        "product": {
-            "id": product.id,
-            "name": product.name,
-            "description": product.description,
-            "price": product.price,
-            "stock": product.stock,
-            "category": product.category,
-            "image_url": product.image_url,
-            "created_at": product.created_at,
-            "is_active": product.is_active
-        }
-    }
+    return product

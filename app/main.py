@@ -101,14 +101,14 @@ app.include_router(
     dependencies=[Depends(require_user)]
 )
 
-# Refresh token route (in practice, you may want to scope this route better)
+# Refresh token route
 app.include_router(
     oauth2.router,
     tags=["Refresh Token"]  # Note: this may be too strict; review
 )
 
 
-# ---------------------------
+# --------------------------
 #       HEALTH CHECK
 # ---------------------------
 

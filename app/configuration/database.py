@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Build the PostgreSQL async connection string
-DATABASE_URL = f'postgresql+asyncpg://{settings.database_username}:{settings.database_password}@{settings.database_hostname}:{settings.database_port}/{settings.database_name}'
+DATABASE_URL = settings.async_database_url
 
 # Establish connection
 try:

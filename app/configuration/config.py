@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     database_hostname: str
     database_password: str
     database_username: str
+    async_database_url: str
     
     # JWT and security
     secret_key: str
@@ -30,6 +31,8 @@ class Settings(BaseSettings):
     mail_server: str
     mail_from_name: str
     mail_from: str
+    
+    sync_database_url: str
 
     # Load variables form .env file
     class Config:

@@ -16,7 +16,8 @@ from . import schema
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/signin')
 
 # Security Configurations
-SECRET_KEY = settings.secret_key
+ACCESS_TOKEN_SECRET_KEY = settings.access_token_secret_key
+REFRESH_TOKEN_SECRET_KEY = settings.refresh_token_secret_key
 ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
@@ -39,7 +40,7 @@ def create_access_token(data: dict) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
 
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, ACCESS_TOKEN_SECRET_KEY, algorithm=ALGORITHM)
 
 
 # --------------------------
@@ -59,7 +60,7 @@ def create_refresh_token(data: dict) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
 
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, REFRESH_TOKEN_SECRET_KEY, algorithm=ALGORITHM)
 
 
 # ----------------------
@@ -77,7 +78,7 @@ def verify_access_token(token: str, credentials_exception) -> schema.TokenData:
         schema.TokenData: Decoded payload with user_id and role.
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, ACCESS_TOKEN_SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("user_id")
         role: str = payload.get("role")
 

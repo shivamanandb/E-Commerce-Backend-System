@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from typing import List
 
 class Settings(BaseSettings):
     
@@ -11,7 +12,8 @@ class Settings(BaseSettings):
     async_database_url: str
     
     # JWT and security
-    secret_key: str
+    access_token_secret_key: str
+    refresh_token_secret_key: str
     algorithm: str 
     access_token_expire_minutes: int
     refresh_token_expire_days: int
@@ -32,6 +34,10 @@ class Settings(BaseSettings):
     mail_from_name: str
     mail_from: str
     
+    # List of Eligible Domains
+    allowed_domains: List[str]
+    
+    # Database URL
     sync_database_url: str
 
     # Load variables form .env file

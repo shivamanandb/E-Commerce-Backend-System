@@ -9,7 +9,7 @@ class ProductViewNormalUser(BaseModel):
     id: int = Field(..., description="Unique identifier of the product")
     name: str = Field(..., description="Name of the product", example="Wireless Mouse")
     price: condecimal(decimal_places=2, ge=0) = Field(..., description="Price of the product", example=499.99)
-    image_url: str = Field(..., description="URL of the product image", example="https://cdn.example.com/mouse.jpg")
+    image_url: str = Field(..., description="URL of the product image")
     category: str = Field(..., description="Product category", example="Electronics")
 
     class Config:

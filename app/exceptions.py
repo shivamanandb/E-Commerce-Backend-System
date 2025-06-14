@@ -23,6 +23,11 @@ class EmailAlreadyExistsException(HTTPException):
     """Exception raised when trying to register with an existing email."""
     def __init__(self, message: str = "Email already exists"):
         super().__init__(status_code=status.HTTP_409_CONFLICT, detail=message)
+        
+class InvalidEmailException(HTTPException):
+    """Exception raised when trying to register with unverified domains."""
+    def __init__(self, message: str = "Invalid domain"):
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=message)
 
 
 class UserNotFoundException(HTTPException):

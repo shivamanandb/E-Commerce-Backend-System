@@ -24,7 +24,7 @@ class CartProduct(BaseModel):
     class Config:
         title="CartProductInput -> No DB interaction"
 
-class CartResponse(BaseModel):
+class CartResponse(BaseModel): 
     items: list[CartProduct] = Field(..., description="Detailed View of Product")
     total_amount: float = Field(..., description="Total amount (sum of subtotals)")
 

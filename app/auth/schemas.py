@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator, Field
-from ..exceptions import InvalidNameException
+from ..exceptions import InvalidNameException, InvalidEmailException
+from ..configuration.config import settings
 from datetime import datetime
 from typing import Literal
 
@@ -24,6 +25,13 @@ class CreateUser(BaseModel):
             raise ValueError('Password must be at least 6 characters long')
         if not any(c.isalpha() for c in value) or not any(c.isdigit() for c in value):
             raise ValueError("Password must contain at least one letter and one number")
+        return value
+    
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, value):
+        if(value.split('@')[-1] not in settings.allowed_domains):
+            raise InvalidEmailException("Email domain doesn't exist")
         return value
     
     class Config:

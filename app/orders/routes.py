@@ -76,6 +76,7 @@ async def view_order_details(
         result = await db.execute(
             select(Order)
             .where(Order.id == order_id, Order.user_id == current_user.id)
+            .order_by(Order.created_at.desc())
             .options(selectinload(Order.order_items).selectinload(OrderItems.product))
         )
 

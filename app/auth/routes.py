@@ -34,7 +34,7 @@ async def create_user(user: schemas.CreateUser, db: AsyncSession = Depends(get_d
         hashed_password = password_encoder.hash_password(user.password)
         user.password = hashed_password
 
-        new_user = models.User(**user.model_dump())
+        new_user = models.User(**user.model_dump())   # unpack the dictionary into keyword arguments
         db.add(new_user)
         await db.commit()
         await db.refresh(new_user)
@@ -69,8 +69,8 @@ async def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Asy
         if not password_encoder.verify_password(user_credentials.password, user.password):
             raise InvalidPasswordException("Invalid credentials")
 
-        access_token = oauth2.create_access_token(data={"user_id": user.id, "role": user.role.value})
-        refresh_token = oauth2.create_refresh_token(data={"user_id": user.id, "role": user.role.value})
+        access_token = oauth2.create_access_token(data={"user_id": user.id, "role": user.role.value, "type": "access"})
+        refresh_token = oauth2.create_refresh_token(data={"user_id": user.id, "role": user.role.value, "type":"refresh"})
 
         return {
             "access_token": access_token,

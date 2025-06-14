@@ -7,7 +7,7 @@ from ...configuration.database import get_db
 from ...utils.image_uploader import upload_image_to_cloudinary 
 from ...configuration.config import settings
 from . import schemas
-from ...exceptions import ProductNotFoundException
+from ...exceptions import ProductNotFoundException, InvalidImageTypeException, GeneralException
 from ...orders.models import OrderItems
 import tempfile
 import logging
@@ -35,7 +35,14 @@ async def create_product(
     """
     Create a new product with image. Uploads image to Cloudinary and saves product details in database.
     """
+    
+    
     try:
+        
+        # check whether content type is valid or not
+        if not file.content_type.startswith('image/'):
+            raise InvalidImageTypeException("Only image file is allowed")
+        
         # Save the uploaded file temporarily
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             contents = await file.read()
@@ -68,9 +75,12 @@ async def create_product(
 
         return new_product
 
+    except InvalidImageTypeException:
+        raise
+
     except Exception as e:
         logger.error(f"Product creation failed: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error during product creation")
+        raise GeneralException(status_code=500, message="Internal Server Error during product creation")
 
 
 # -----------------------------

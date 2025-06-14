@@ -4,7 +4,7 @@ from typing import Optional, Dict
 from ..exceptions import GeneralException
 
 
-async def upload_image_to_cloudinary(file_path: str, folder: Optional[str] = None) -> Dict:
+async def upload_image_to_cloudinary(file_path: str, folder: str = None) -> Dict:
     """
     Uploads an image to Cloudinary.
 

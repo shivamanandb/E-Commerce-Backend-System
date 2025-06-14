@@ -47,6 +47,10 @@ class ProductNotFoundException(HTTPException):
     def __init__(self, message: str = "Product not found"):
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=message)
 
+class InvalidImageTypeException(HTTPException):
+    """Exception raised when an invalid file type is uploaded"""
+    def __init__(self, message: str = "Invalid content type"):
+        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
 
 class InvalidTokenException(HTTPException):
     """Exception raised when a token is invalid or tampered."""

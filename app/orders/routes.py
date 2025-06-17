@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from ..configuration.database import get_db
-from ..auth import models as userModel
+from ..auth import models as user_model
 from ..middlewares import oauth2
 from ..orders.models import Order, OrderItems
 from ..products.models import Product
@@ -18,7 +18,7 @@ router = APIRouter()
 @router.get("/", status_code=status.HTTP_200_OK)
 async def view_order_history(
     db: AsyncSession = Depends(get_db),
-    current_user: userModel.User = Depends(oauth2.get_current_user)
+    current_user: user_model.User = Depends(oauth2.get_current_user)
 ):
     """
     Retrieve a list of all past orders placed by the currently authenticated user.
@@ -61,7 +61,7 @@ async def view_order_history(
 async def view_order_details(
     order_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: userModel.User = Depends(oauth2.get_current_user)
+    current_user: user_model.User = Depends(oauth2.get_current_user)
 ):
     """
     Retrieve full details of a specific order for the logged-in user.
@@ -105,8 +105,8 @@ async def view_order_details(
             "items": item_details
         }
 
-    except OrderNotFoundException as not_found:
-        raise not_found
+    except OrderNotFoundException:
+        raise
 
     except Exception as e:
         raise GeneralException(

@@ -44,10 +44,10 @@ async def refresh_token(
         role: str = payload.get("role")
         type: str = payload.get("type")
 
-        if user_id is None or type is None:
+        if user_id is None or role is None or type is None:
             raise InvalidTokenException("Missing user_id or role in refresh token")
 
-        # Log token refresh event (optional)
+        # Log token refresh event
         logger.info(f"Issuing new access token for user_id: {user_id}")
 
         # Generate new tokens

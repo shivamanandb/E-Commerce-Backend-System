@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, Integer, ForeignKey, CheckConstraint
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
 from sqlalchemy.orm import relationship
@@ -54,4 +54,8 @@ class Cart(Base):
     user = relationship("User", back_populates="cart_items")
     product = relationship("Product", back_populates="cart_items")
 
+    # Constraints to ensure data integrity
+    __table_args__ = (
+        CheckConstraint('quantity >= 1', name='check_quantity_greater_than_1'),
+    )
     

@@ -1,4 +1,4 @@
-from sqlalchemy import Column,Integer, String, Numeric, TIMESTAMP, CheckConstraint, Boolean, text
+from sqlalchemy import Column,Integer, String, Numeric, TIMESTAMP, CheckConstraint, Boolean, text, ForeignKey
 
 from sqlalchemy.orm import relationship
 from ..configuration.database import Base
@@ -36,6 +36,9 @@ class Product(Base):
 
     # Optional image URL for the product
     image_url = Column(String, nullable=True)
+    
+    # Admin User id who is creating particular product
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     # Soft delete flag to mark product as inactive/discontinued
     is_active = Column(Boolean, nullable=False, default=True)
@@ -50,9 +53,11 @@ class Product(Base):
     # Relationships
     cart_items = relationship("Cart", back_populates="product")
     order_items = relationship("OrderItems", back_populates="product")
+    user = relationship("User", back_populates="product")
 
     # Constraints to ensure data integrity
     __table_args__ = (
         CheckConstraint('price >= 1', name='check_price_greater_than_1'),
         CheckConstraint('stock >= 0', name='check_stock_positive'),
     )
+    

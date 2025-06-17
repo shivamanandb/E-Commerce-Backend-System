@@ -36,6 +36,7 @@ async def create_user(user: schemas.CreateUser, db: AsyncSession = Depends(get_d
 
         new_user = models.User(**user.model_dump())   # unpack the dictionary into keyword arguments
         db.add(new_user)
+        
         await db.commit()
         await db.refresh(new_user)
 

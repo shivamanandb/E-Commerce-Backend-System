@@ -16,15 +16,7 @@ class CreateProductInput(BaseModel):
 
     class Config:
         title = "CreateProductInput"
-        json_schema_extra = {
-            "example": {
-                "name": "Wireless Keyboard",
-                "description": "Compact and ergonomic wireless keyboard with backlight",
-                "price": 1899.99,
-                "stock": 40,
-                "category": "Accessories"
-            }
-        }
+
 
 # ------------------------------
 # Product Output Schema
@@ -40,17 +32,7 @@ class ProductOutput(CreateProductInput):
     class Config:
         from_attributes = True
         title = "ProductOutput"
-        json_schema_extra = {
-            "example": {
-                "id": 101,
-                "name": "Wireless Keyboard",
-                "description": "Compact and ergonomic wireless keyboard with backlight",
-                "price": 1899.99,
-                "stock": 40,
-                "category": "Accessories",
-                "image_url": "https://cdn.cloudinary.com/demo/image/upload/v16811223344/keyboard.png"
-            }
-        }
+        
 
 # ------------------------------
 # Product Detailed Output Schema
@@ -65,15 +47,4 @@ class ProductDetailsOutput(ProductOutput):
     class Config:
         from_attributes = True
         title = "ProductDetailsOutput"
-        json_schema_extra = {
-            "example": {
-                "id": 101,
-                "name": "Wireless Keyboard",
-                "description": "Compact and ergonomic wireless keyboard with backlight",
-                "price": 1899.99,
-                "stock": 40,
-                "category": "Accessories",
-                "image_url": "https://cdn.cloudinary.com/demo/image/upload/v16811223344/keyboard.png",
-                "created_at": "2025-06-11T15:30:00Z",
-            }
-        }
+    

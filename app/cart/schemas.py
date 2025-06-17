@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+from fastapi import status
+from app.exceptions import GeneralException
 
 class CartData(BaseModel):
     product_id: int = Field(...,description="Unique id of product")
@@ -9,6 +11,13 @@ class CartData(BaseModel):
 
 class ProductQuantity(BaseModel):
     quantity: int = Field(..., description="Quantity of product for quantity updation")
+    
+    @field_validator('quantity')
+    @classmethod
+    def quantity_validator(cls, value):
+        if value < 1:
+            raise GeneralException(status_code=status.HTTP_400_BAD_REQUEST, message="Quantity can't be less than 1.")
+        return value
 
     class Config:
         title="ProductQuantityInput"

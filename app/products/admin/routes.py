@@ -3,10 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, asc, delete, desc, update
 from typing import List, Optional
 from .. import models
+from ...auth import models as user_model
 from ...configuration.database import get_db
 from ...utils.image_uploader import upload_image_to_cloudinary 
 from ...configuration.config import settings
 from . import schemas
+from ...middlewares import oauth2
 from ...exceptions import ProductNotFoundException, InvalidImageTypeException, GeneralException
 from ...orders.models import OrderItems
 import tempfile
@@ -30,7 +32,8 @@ async def create_product(
     stock: int = Form(...),
     category: str = Form(...),
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: user_model.User = Depends(oauth2.get_current_user)
 ):
     """
     Create a new product with image. Uploads image to Cloudinary and saves product details in database.
@@ -66,6 +69,7 @@ async def create_product(
             price=price,
             stock=stock,
             category=category,
+            user_id=current_user.id,
             image_url=image_url
         )
 
@@ -113,7 +117,7 @@ async def get_products(
         statement = statement.where(and_(*filters))
         
     if sort_by in ["id", "price", "stock", "created_at"]:
-        statement = statement.order_by(desc(getattr(models.Product, sort_by)))
+        statement = statement.order_by(getattr(models.Product, sort_by))
     else:
         statement = statement.order_by(models.Product.id)
         
@@ -144,6 +148,32 @@ async def product_search(
     return result.scalars().all()
 
 
+# -------------------------------
+# GET YOUR PRODUCTS (ADMIN API)
+# -------------------------------
+@router.get("/all", response_model=List[schemas.ProductOutput], tags=["Product - Admin APIs"])
+async def your_products(
+    db: AsyncSession = Depends(get_db),
+    current_user: user_model.User = Depends(oauth2.get_current_user)
+):
+    """ 
+    Get only those product details that is created by their own. 
+    """
+    statement = await db.execute(
+        select(models.Product)
+        .where(models.Product.user_id == current_user.id,
+                models.Product.is_active == True
+            )
+    )
+    
+    products = statement.scalars().all()
+    
+    if not products:
+        raise ProductNotFoundException(f"No product found")
+    
+    return products
+
+
 # -----------------------------
 # GET PRODUCT BY ID (Admin API)
 # -----------------------------
@@ -166,9 +196,11 @@ async def product_by_id(id: int, db: AsyncSession = Depends(get_db)):
 # DELETE PRODUCT BY ID (Admin API)
 # -----------------------------
 
-
 @router.delete("/{id}", tags=["Product - Admin APIs"])
-async def delete_product_by_id(id: int, db: AsyncSession = Depends(get_db)):
+async def delete_product_by_id(
+    id: int, db: AsyncSession = Depends(get_db), 
+    current_user: user_model.User = Depends(oauth2.get_current_user)
+):
     """
     Delete a product from the database using its ID.
     Basic Idea is that if product is ordered at least one time and if is it deleted from DB
@@ -179,12 +211,22 @@ async def delete_product_by_id(id: int, db: AsyncSession = Depends(get_db)):
     in DB but no one will allow to access. and if product didn't order even a single time, it 
     can be deleted easily.
     """
-    statement = select(models.Product).where(models.Product.id == id)
+    statement = select(models.Product).where(
+        models.Product.id == id,
+        models.Product.is_active == True
+    )
+    
     result = await db.execute(statement)
     product = result.scalar_one_or_none()
 
     if not product:
         raise ProductNotFoundException(f"Product not found with ID: {id}")
+    
+    if product.user_id != current_user.id:
+        raise GeneralException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            message="Only the creator admin is allowed to delete this product."
+        )
     
     # check whether product has been ordered earlier or not
     is_order = await db.execute(select(OrderItems).where(OrderItems.product_id == id))
@@ -192,8 +234,8 @@ async def delete_product_by_id(id: int, db: AsyncSession = Depends(get_db)):
     is_order = is_order.scalar_one_or_none()
     
     if not is_order:
-        delete_stmt = delete(models.Product).where(models.Product.id == id)
-        await db.execute(delete_stmt)
+        delete_statement = delete(models.Product).where(models.Product.id == id)
+        await db.execute(delete_statement)
     
     else:
         await db.execute(
@@ -207,7 +249,6 @@ async def delete_product_by_id(id: int, db: AsyncSession = Depends(get_db)):
 
     return {"message": "Product deleted successfully"}
 
-
 # -----------------------------
 # UPDATE PRODUCT BY ID (Admin API)
 # -----------------------------
@@ -220,7 +261,8 @@ async def update_product(
     stock: int = Form(...),
     category: str = Form(...),
     file: Optional[UploadFile] = File(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: user_model.User = Depends(oauth2.get_current_user)
 ):
     """
     Update a product's information. Optionally upload a new image.
@@ -231,6 +273,12 @@ async def update_product(
 
     if not product:
         raise ProductNotFoundException(f"Product not found with ID: {id}")
+    
+    if product.user_id != current_user.id:
+        raise GeneralException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            message="only creator admin is allowed to update this product."
+        )
 
     if file:
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
@@ -256,3 +304,5 @@ async def update_product(
     await db.refresh(product)
 
     return product
+
+

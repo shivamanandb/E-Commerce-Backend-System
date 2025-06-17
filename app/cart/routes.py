@@ -5,9 +5,9 @@ from sqlalchemy.orm import selectinload
 from ..configuration.database import get_db
 from . import models as cartModel
 from ..middlewares import oauth2
-from ..auth import models as userModel
-from ..products import models as productModel
-from ..orders import models as ordersModel
+from ..auth import models as user_model
+from ..products import models as product_model
+from ..orders import models as orders_model
 from ..orders.models import OrderStatus
 from ..exceptions import (
     UserNotFoundException, 
@@ -23,7 +23,7 @@ router = APIRouter()
 async def add_to_cart(
     cart: schemas.CartData, 
     db: AsyncSession = Depends(get_db), 
-    current_user: userModel.User = Depends(oauth2.get_current_user)
+    current_user: user_model.User = Depends(oauth2.get_current_user)
 ):
     """
     Add a product to the cart.
@@ -31,7 +31,10 @@ async def add_to_cart(
     Checks if the requested quantity is available in stock.
     """
     product_result = await db.execute(
-        select(productModel.Product).where(productModel.Product.id == cart.product_id)
+        select(product_model.Product).where(
+            product_model.Product.id == cart.product_id,
+            product_model.Product.is_active == True
+        )
     )
     product = product_result.scalar_one_or_none()
 
@@ -69,10 +72,10 @@ async def add_to_cart(
     return {"message": "Product added to cart successfully"}
 
 
-@router.get("/", response_model=schemas.CartResponse)
+@router.get("/", status_code=status.HTTP_200_OK, response_model=schemas.CartResponse)
 async def view_cart(
     db: AsyncSession = Depends(get_db),
-    current_user: userModel.User = Depends(oauth2.get_current_user)
+    current_user: user_model.User = Depends(oauth2.get_current_user)
 ):
     """
     Retrieve all items in the user's cart, including product details and total cost.
@@ -107,7 +110,7 @@ async def view_cart(
 async def remove_from_cart(
     product_id: int, 
     db: AsyncSession = Depends(get_db),
-    current_user: userModel.User = Depends(oauth2.get_current_user)
+    current_user: user_model.User = Depends(oauth2.get_current_user)
 ):
     """
     Remove a specific product from the user's cart.
@@ -133,7 +136,7 @@ async def update_quantity(
     product_id: int, 
     productData: schemas.ProductQuantity,
     db: AsyncSession = Depends(get_db),
-    current_user: userModel.User = Depends(oauth2.get_current_user)
+    current_user: user_model.User = Depends(oauth2.get_current_user)
 ):
     """
     Update quantity of a product in the user's cart after verifying stock availability.
@@ -166,7 +169,7 @@ async def update_quantity(
 async def checkout(
     checkOutAddress: schemas.CheckOutAddress,
     db: AsyncSession = Depends(get_db),
-    current_user: userModel.User = Depends(oauth2.get_current_user)
+    current_user: user_model.User = Depends(oauth2.get_current_user)
 ):
     """
     Place an order based on items in the cart:
@@ -194,19 +197,20 @@ async def checkout(
     total_amt = sum(item.product.price * item.quantity for item in cart)
 
     # Create order
-    order = ordersModel.Order(
+    order = orders_model.Order(
         user_id=current_user.id,
         total_amount=total_amt,
         address=checkOutAddress.address,
         status=OrderStatus.paid
     )
+    
     db.add(order)
     await db.commit()
     await db.refresh(order)
 
     # Add order items
     for item in cart:
-        db.add(ordersModel.OrderItems(
+        db.add(orders_model.OrderItems(
             order_id=order.id,
             product_id=item.product_id,
             quantity=item.quantity,
@@ -216,8 +220,8 @@ async def checkout(
     # Update product stock
     for item in cart:
         await db.execute(
-            update(productModel.Product)
-            .where(productModel.Product.id == item.product_id)
+            update(product_model.Product)
+            .where(product_model.Product.id == item.product_id)
             .values(stock=item.product.stock - item.quantity)
         )
 

@@ -109,12 +109,12 @@ app.include_router(
 
 
 # --------------------------
-#       HEALTH CHECK
+#  APPLICATION STARTUP 
 # ---------------------------
 
 @app.get("/")
 async def root():
     """
-    Health check endpoint to verify the application is running.
+    check endpoint to verify the application is running.
     """
     return {'message': 'hello world'}

@@ -19,7 +19,7 @@ class UserRole(enum.Enum):
 
 
 # -------------------------------
-# USER MODEL
+# USER MODEL 
 # -------------------------------
 
 class User(Base):
@@ -53,7 +53,6 @@ class User(Base):
     cart_items = relationship(
         "Cart", 
         back_populates="user", 
-        cascade="all, delete-orphan"
     )
 
     orders = relationship(
@@ -63,6 +62,11 @@ class User(Base):
 
     password_reset_tokens = relationship(
         "ResetPasswordToken", 
+        back_populates="user"
+    )
+    
+    product = relationship(
+        "Product",
         back_populates="user"
     )
 

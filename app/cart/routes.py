@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 from sqlalchemy.orm import selectinload
-from ..configuration.database import get_db
+from configuration.database import get_db
 from . import models as cartModel
-from ..middlewares import oauth2
-from ..auth import models as userModel
-from ..products import models as productModel
-from ..orders import models as ordersModel
-from ..orders.models import OrderStatus
-from ..exceptions import (
+from middlewares import oauth2
+from auth import models as userModel
+from products import models as productModel
+from orders import models as ordersModel
+from orders.models import OrderStatus
+from exceptions import (
     UserNotFoundException, 
     ProductNotFoundException, 
     InvalidStockException

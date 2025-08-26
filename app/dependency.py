@@ -1,7 +1,7 @@
 from fastapi import Depends
-from .middlewares.oauth2 import get_current_user
-from .exceptions import AuthException
-from .auth.models import User
+from middlewares.oauth2 import get_current_user
+from exceptions import AuthException
+from auth.models import User
 
 
 async def require_admin(current_user: User = Depends(get_current_user)) -> User:

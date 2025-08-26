@@ -2,29 +2,29 @@ from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
 
 # Import all SQLAlchemy models to register them with metadata
-from .auth import models as auth_model
-from .cart import models as cart_model
-from .orders import models as orderItems_model
-from .orders import models as orders_model
-from .products import models as products_model
-from .auth import models as reset_token_model
+from auth import models as auth_model
+from cart import models as cart_model
+from orders import models as orderItems_model
+from orders import models as orders_model
+from products import models as products_model
+from auth import models as reset_token_model
 
 # Import route modules
-from .auth import routes as auth
-from .cart import routes as cart
-from .orders import routes as orderItems
-from .orders import routes as orders
-from .products.admin import routes as products_admin_routes
-from .products.user import routes as products_user_routes
-from .middlewares import routes as oauth2
+from auth import routes as auth
+from cart import routes as cart
+from orders import routes as orderItems
+from orders import routes as orders
+from products.admin import routes as products_admin_routes
+from products.user import routes as products_user_routes
+from middlewares import routes as oauth2
 
 # Import configuration utilities
-from .configuration import cloudinary
-from .configuration.database import engine
+from configuration import cloudinary
+from configuration.database import engine
 
 # Import shared utilities
-from .global_exception_handler import add_exception_handlers 
-from .dependency import require_admin, require_user
+from global_exception_handler import add_exception_handlers 
+from dependency import require_admin, require_user
 
 
 @asynccontextmanager

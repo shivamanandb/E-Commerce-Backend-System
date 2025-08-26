@@ -2,8 +2,8 @@ from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
 from sqlalchemy.orm import relationship
-from ..configuration.database import Base
-from ..products.models import Product
+from configuration.database import Base
+from products.models import Product
 
 
 # -------------------------------

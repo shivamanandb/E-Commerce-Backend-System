@@ -1,7 +1,7 @@
 import cloudinary
 import cloudinary.uploader
 from typing import Optional, Dict
-from ..exceptions import GeneralException
+from exceptions import GeneralException
 
 
 async def upload_image_to_cloudinary(file_path: str, folder: Optional[str] = None) -> Dict:

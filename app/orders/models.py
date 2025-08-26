@@ -4,7 +4,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from decimal import Decimal
-from ..configuration.database import Base
+from configuration.database import Base
 import enum
 
 # ---------------------------------------------------------

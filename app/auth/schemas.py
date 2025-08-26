@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator, Field
-from ..exceptions import InvalidNameException
+from exceptions import InvalidNameException
 from datetime import datetime
 from typing import Literal
 

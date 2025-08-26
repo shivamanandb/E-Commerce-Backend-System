@@ -1,5 +1,5 @@
 from .send_email import send_email
-from ..exceptions import GeneralException
+from exceptions import GeneralException
 from fastapi import status
 
 

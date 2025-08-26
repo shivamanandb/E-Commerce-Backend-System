@@ -3,12 +3,12 @@ from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
-from ..configuration import logger_config
+from configuration import logger_config
 from . import schema
-from ..configuration.database import get_db
-from ..configuration.config import settings
-from .oauth2 import create_access_token, create_refresh_token
-from ..exceptions import InvalidTokenException
+from configuration.database import get_db
+from configuration.config import settings
+from middlewares.oauth2 import create_access_token, create_refresh_token
+from exceptions import InvalidTokenException
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

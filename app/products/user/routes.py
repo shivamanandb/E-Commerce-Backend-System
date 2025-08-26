@@ -3,9 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, asc
 from typing import List, Optional
 from .. import models
-from ...configuration.database import get_db
+from configuration.database import get_db
 from . import schemas
-from ...exceptions import ProductNotFoundException
+from exceptions import ProductNotFoundException
 import logging
 
 # Initialize logger

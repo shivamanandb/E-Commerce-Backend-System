@@ -1,6 +1,6 @@
 import emails
 from emails.template import JinjaTemplate
-from ..configuration.config import settings
+from configuration.config import settings
 import logging
 
 logger = logging.getLogger(__name__)

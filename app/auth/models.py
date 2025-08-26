@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Integer, Enum, ForeignKey, Boolean
 from sqlalchemy.sql.expression import text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import TIMESTAMP
-from ..configuration.database import Base
+from configuration.database import Base
 import enum
 
 # -------------------------------

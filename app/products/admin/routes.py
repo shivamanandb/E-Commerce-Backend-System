@@ -3,12 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, asc, delete, desc, update
 from typing import List, Optional
 from .. import models
-from ...configuration.database import get_db
-from ...utils.image_uploader import upload_image_to_cloudinary 
-from ...configuration.config import settings
+from configuration.database import get_db
+from utils.image_uploader import upload_image_to_cloudinary 
+from configuration.config import settings
 from . import schemas
-from ...exceptions import ProductNotFoundException
-from ...orders.models import OrderItems
+from exceptions import ProductNotFoundException
+from orders.models import OrderItems
 import tempfile
 import logging
 import os

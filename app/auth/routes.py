@@ -3,23 +3,23 @@ from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from datetime import datetime, timedelta, timezone
-from ..middlewares import oauth2
+from middlewares import oauth2
 from . import schemas, models
-from ..auth.models import ResetPasswordToken
-from ..configuration.config import settings 
+from auth.models import ResetPasswordToken
+from configuration.config import settings 
 import logging
-from ..configuration import logger_config
-from ..exceptions import EmailAlreadyExistsException, UserNotFoundException, InvalidPasswordException, InvalidTokenException
+from configuration import logger_config
+from exceptions import EmailAlreadyExistsException, UserNotFoundException, InvalidPasswordException, InvalidTokenException
 from sqlalchemy.exc import IntegrityError
-from ..configuration.database import get_db
-from .schemas import ForgotPasswordRequest
-from ..utils import password_encoder
+from configuration.database import get_db
+from auth.schemas import ForgotPasswordRequest
+from utils import password_encoder
 from . import models
-from ..utils import password_encoder 
-from ..utils.reset_password_token import generate_reset_token
-from ..utils.password_reset_email import send_password_reset_email
-from ..auth.schemas import ResetPasswordRequest
-from ..auth.models import ResetPasswordToken
+from utils import password_encoder 
+from utils.reset_password_token import generate_reset_token
+from utils.password_reset_email import send_password_reset_email
+from auth.schemas import ResetPasswordRequest
+from auth.models import ResetPasswordToken
 
 router = APIRouter()
 

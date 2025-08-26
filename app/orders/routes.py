@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from ..configuration.database import get_db
-from ..auth import models as userModel
-from ..middlewares import oauth2
-from ..orders.models import Order, OrderItems
-from ..products.models import Product
-from ..exceptions import GeneralException, OrderNotFoundException
+from configuration.database import get_db
+from auth import models as userModel
+from middlewares import oauth2
+from orders.models import Order, OrderItems
+from products.models import Product
+from exceptions import GeneralException, OrderNotFoundException
 
 router = APIRouter()
 

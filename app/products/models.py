@@ -1,7 +1,7 @@
 from sqlalchemy import Column,Integer, String, Numeric, TIMESTAMP, CheckConstraint, Boolean, text
 
 from sqlalchemy.orm import relationship
-from ..configuration.database import Base
+from configuration.database import Base
 
 
 class Product(Base):
